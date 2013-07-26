@@ -23,7 +23,7 @@ class GeneticAlgorithm {
 
         while (_pops.length < _popsSize) {
             makeChild();
-            if (_pops.length % 2 != 0) randomMutate();
+            //if (_pops.length % 3 != 0) randomMutate();
         }
     }
 
@@ -47,7 +47,7 @@ class GeneticAlgorithm {
 
             if (n == 1000) break;
 
-            _pops = _pops[0 .. to!size_t(_pops.length * _selectFrac + 0.5)];
+            _pops = _pops[0 .. to!size_t(_pops.length * _selectFrac + 0.5f)];
             while (_pops.length < _popsSize) makeChild();
 
             randomMutate();
@@ -62,7 +62,8 @@ class GeneticAlgorithm {
     private void makeChild() {
         if (_pops.length == 1) _pops ~= _pops[0].dup;
         auto parents = array(randomSample(_pops, 2));
-        _pops ~= parents[0].crossWith(parents[1]);
+        _pops ~= parents[0].crossWith(parents[1], _mutationFrac * 0.5f);
+        //writeln(_pops.length, " child maked");
     }
 
     private void randomMutate() {

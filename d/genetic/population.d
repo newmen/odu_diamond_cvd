@@ -4,9 +4,9 @@ interface Population {
 
     Population dup();
     void mutate(float coef);
-    Population crossWith(Population other);
+    Population crossWith(Population other, float muationCoef);
 
-    @property float[] values();
+    @property double[] values();
 
     void print();
     @property real mark();

@@ -1,5 +1,5 @@
 import std.stdio;
-import std.math : exp, pow;
+import std.math : exp, pow, isNaN;
 import std.string;
 import genetic.rate_population;
 
@@ -11,7 +11,7 @@ class Ode {
     public enum float CH3 = 1e-10;
     public enum float T = 1200;
 
-    private enum float maxt = 50.01;
+    private enum float maxt = 25.0;
     private enum float dt = 0.01;
 
     shared private RatePopulation pop;
@@ -27,17 +27,21 @@ class Ode {
 
 //writeln(cc);
 
+        int t = 10;
+        bool fail = false;
     	for (int x = 0; x < (maxt/dt); x++) {
     		cc = RUN(cc);
-    	}
 
-        real[C] toel;
-        toel[] = 0;
-        for (int l = 0; l < L; l++) {
-            for (int j = 0; j<C;j++) {
-                toel[j] += cc[l][j];
+            if (x % t == 0) {
+                for (int j = 0; j < C;j++) {
+                    if (isNaN(cc[L-1][j] || cc[0][j] < 0 || cc[0][j] > 1)) {
+                        fail = true;
+                        break;
+                    }
+                }
+                if (fail) break;
             }
-        }
+    	}
 
         pop.setCC(cast(shared) cc);
     }

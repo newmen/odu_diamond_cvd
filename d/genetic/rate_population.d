@@ -40,25 +40,25 @@ class RatePopulation : Population {
     //k9 = 3.5e8 * math.exp(-31.3/(1.98*T))
 
     private real _mark;
-    private float _k1, _k2, _k4, _k4_1, _k4_2, _k5, _k6, _k7, _k8, _k9;
+    private double _k1, _k2, _k4, _k4_1, _k4_2, _k5, _k6, _k7, _k8, _k9;
 
-    shared @property float k1() { return _k1; }
-    shared @property float k2() { return _k2; }
-    shared @property float k4() { return _k4; }
-    shared @property float k4_1() { return _k4_1; }
-    shared @property float k4_2() { return _k4_2; }
-    shared @property float k5() { return _k5; }
-    shared @property float k6() { return _k6; }
-    shared @property float k7() { return _k7; }
-    shared @property float k8() { return _k8; }
-    shared @property float k9() { return _k9; }
+    shared @property double k1() { return _k1; }
+    shared @property double k2() { return _k2; }
+    shared @property double k4() { return _k4; }
+    shared @property double k4_1() { return _k4_1; }
+    shared @property double k4_2() { return _k4_2; }
+    shared @property double k5() { return _k5; }
+    shared @property double k6() { return _k6; }
+    shared @property double k7() { return _k7; }
+    shared @property double k8() { return _k8; }
+    shared @property double k9() { return _k9; }
 
     private real[Ode.C] total;
     private real[Ode.C][Ode.L] cc;
 
     Tid childLoop;
 
-    this(float k1, float k2, float k4, float k5, float k6, float k7, float k8, float k9) {
+    this(double k1, double k2, double k4, double k5, double k6, double k7, double k8, double k9) {
         _k1 = k1;
         _k2 = k2;
         set_k4(k4);
@@ -95,9 +95,9 @@ class RatePopulation : Population {
             if (coef * 50 - uniform(0, 100) < 0) return x;
             auto y = x * (coef * a * 0.5f - uniform(0, coef * a)) +
                 coef * b * 0.5f - uniform(0, coef * b);
-            if (y < 0) y = 0;
-            return y;
-        };
+             if (y < 0) y = 0;
+             return y;
+         };
 
         _k1 = l(_k1, 100, 5000);
         _k2 = l(_k2, 100, 5000);
@@ -108,6 +108,7 @@ class RatePopulation : Population {
         _k8 = l(_k8, 10, 50);
         _k9 = l(_k9, 500, 25000);
 
+
         recalcMark();
     }
 
@@ -117,7 +118,7 @@ class RatePopulation : Population {
             receiveOnly!bool();
             childLoop = Tid.init;
             //writeln("  reset ", values);
-        } else {
+        //} else {
             //writeln(" ok ", values);
         }
     }
@@ -140,14 +141,22 @@ class RatePopulation : Population {
         real stars = 0, hydrogen = 0;
         for (int l = 0; l < Ode.L; l++) {
 
-            real cs = 0;
+            real cls = 0;
             for (int j = 0; j < Ode.C;j++) {
-                if (isNaN(cc[l][j]) || cc[l][j] < 0) fail = true;
+                if (isNaN(cc[l][j]) || cc[l][j] < 0) {
+                    fail = true;
+                    break;
+                }
+
                 total[j] += cc[l][j];
-                cs += cc[l][j];
+                cls += cc[l][j];
             }
 
-            if (l == 0 && (abs(1 - cs) > 1e-10)) fail = true;
+            if (fail) break;
+            if (l == 0 && (abs(1 - cls) > 1e-15)) {
+                fail = true;
+                break;
+            }
 
             stars = cc[l][1] + cc[l][2] * 2 + cc[l][3] + cc[l][7];
             hydrogen = cc[l][0] * 2 + cc[l][1] + cc[l][4] + cc[l][8];
@@ -156,28 +165,24 @@ class RatePopulation : Population {
         _mark = 0;
         if (!fail) {
 
-            real sum = stars + hydrogen;
-            if (sum != 0) {
-                stars /= sum;
-                hydrogen /= sum;
-            }
-
             //_mark = total[6];
             for (int l = Ode.L - 1; l >= 0; l--) {
-                _mark += cc[l][6] * pow(3, l + 1);
+                _mark += cc[l][6] * pow(10, l);
             }
 
+            real sum = stars + hydrogen;
+            if (sum > 0) stars /= sum;
             _mark /= 1.0 + 1000 * abs(stars - 0.12); // около 12% звёздочек на поверхности
         }
 
         send(ownerTid, true);
     }
 
-    override @property float[] values() {
+    override @property double[] values() {
         return [_k1, _k2, _k4, _k5, _k6, _k7, _k8, _k9];
     }
 
-    override Population crossWith(Population other) {
+    override Population crossWith(Population other, float mutationCoef) {
         auto pairs = zip(values, other.values);
         auto values = map!((xy) {
             return (xy[0] + xy[1]) * 0.5f;
@@ -187,7 +192,7 @@ class RatePopulation : Population {
             values[0], values[1], values[2], values[3], values[4],
             values[5], values[6], values[7]
         );
-        child.mutate(0.1);
+        if (mutationCoef > 0) child.mutate(mutationCoef);
 
         return child;
     }

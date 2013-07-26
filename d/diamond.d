@@ -51,7 +51,7 @@ void main() {
         0,   // 9
     );
 
-    auto ga = new GeneticAlgorithm(0.3, 0.15, zero, 300);
+    auto ga = new GeneticAlgorithm(0.2, 0.1, zero, 500);
     auto best = ga.find();
     best.print();
 
